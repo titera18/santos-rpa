@@ -1,0 +1,12 @@
+# Ambiente e modelo de IA (recriados pelo requirements.txt e na primeira execução)
+.venv/
+modelos/
+__pycache__/
+*.pyc
+
+# Gerados pelo robô a cada execução
+santos_noticias.db
+santos_noticias.db-*
+dashboard.html
+dashboard.html.tmp
+logs/

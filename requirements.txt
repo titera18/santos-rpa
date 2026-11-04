@@ -1,0 +1,11 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+requests>=2.32
+beautifulsoup4>=4.12
+feedparser>=6.0
+lxml>=5.0
+# Modelo de IA de sentimento: versões fixas, nas quais o acerto foi medido (só CPU)
+torch==2.15.0
+transformers==5.22.1
+sentencepiece
+protobuf
+tiktoken
