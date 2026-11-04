@@ -63,6 +63,10 @@ Notícias sobre moda, vida pessoal, ações sociais e casos de polícia são rej
 na tabela `descartes`. Diretoria, finanças e estádio continuam, porque afetam o time e o jogo. Para mudar esse
 critério, edite `FORA_DE_ESPORTE` em `relevancia.py`.
 
+Partidas de outros clubes na Vila Belmiro, como São Paulo x Corinthians, também são rejeitadas, com o motivo "jogo de outros
+clubes na Vila Belmiro". A regra vale para títulos que citam o estádio sem citar o Santos e trazem dois clubes, ou um clube e
+a palavra "clássico" ou "Majestoso". Notícias sobre a condição do estádio, como gramado e obras, continuam na base.
+
 ## Análise de sentimento
 
 O sentimento responde se a notícia é boa ou ruim **para o Santos**: "Palmeiras vence o Santos" é negativo. Cada título

@@ -41,6 +41,8 @@ CLUBE_EXPLICITO = re.compile(
 )
 # O estádio também recebe jogos de outros clubes: é ligado ao Santos, mas não é o assunto principal.
 ESTADIO = re.compile(r"vila belmiro|gramado da vila")
+CONDICAO_DO_ESTADIO = re.compile(r"gramado|relvado|\bcampo\b|\bteto\b|forro|cobertura|estrutura|reforma|\bobras?\b|interdi|capacidade|desaba|\bcede\b")
+CLASSICO = re.compile(r"\b(classico|majestoso)\b")
 # Atualize esta lista quando o elenco ou a comissão mudarem.
 PESSOAS_DO_CLUBE = re.compile(r"\b(neymar|gabigol|cuca)\b")
 VEICULOS_ESPORTIVOS = {"ge", "lance", "gazeta esportiva", "espn brasil", "bolavip brasil", "onefootball", "r7 esportes"}
@@ -80,6 +82,17 @@ def _cita_clube(texto: str) -> bool:
     return re.search(r"\bSantos\b|\bSANTOS\b", limpo) is not None
 
 
+def _jogo_de_outros_clubes(titulo_norm: str) -> bool:
+    """Título que cita o estádio, sem citar o Santos, e trata de uma partida de outros clubes.
+
+    A condição do estádio continua na base mesmo nesses casos, porque o estádio é do clube.
+    """
+    if CONDICAO_DO_ESTADIO.search(titulo_norm):
+        return False
+    clubes = set(OUTROS_CLUBES.findall(titulo_norm))
+    return len(clubes) >= 2 or bool(clubes and CLASSICO.search(titulo_norm))
+
+
 def avaliar_foco(titulo: str, resumo: str, url: str, fonte: str = "") -> tuple[float, str]:
     """Retorna (pontos de foco, motivo). Zero pontos significa descartar."""
     t, r = norm(titulo), norm(resumo)
@@ -103,6 +116,8 @@ def avaliar_foco(titulo: str, resumo: str, url: str, fonte: str = "") -> tuple[f
     if re.search(r"\bpeixe\b", t) and tem_futebol:
         return 25, "apelido do clube no título"
     if ESTADIO.search(t):
+        if _jogo_de_outros_clubes(t):
+            return 0, "jogo de outros clubes na Vila Belmiro"
         return 15, "estádio do clube"
     if PESSOAS_DO_CLUBE.search(t):
         return 18, "pessoa do clube no título"
@@ -303,6 +318,8 @@ onde assistir vivo horario escalacoes escalacao provaveis veja saiba tudo jogo b
 brasileiro rodada pelo pela red bull
 """.split())
 ADVERSARIOS_TOKENS = {c for c in CLUBES if " " not in c} | {"sao", "ponte", "atletico"}
+# "vitória" e "sport" também são palavras comuns: não servem para concluir que um título cita outro clube.
+OUTROS_CLUBES = re.compile(r"\b(" + "|".join(sorted(map(re.escape, CLUBES - {"vitoria", "sport"}), key=len, reverse=True)) + r")\b")
 
 
 def tokens_do_titulo(titulo: str) -> frozenset:

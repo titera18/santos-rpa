@@ -55,8 +55,24 @@ class FiltroDoClube(unittest.TestCase):
         self.assertGreaterEqual(self.foco("Por que Ramón Sosa está fora de Santos x Palmeiras?"), 25)
         self.assertEqual(self.foco("Santos tem novo hospital municipal"), 0)
 
-    def test_jogo_de_outros_na_vila_nao_e_foco_maximo(self):
-        self.assertEqual(self.foco("São Paulo x Corinthians: clássico será na Vila Belmiro"), 15)
+    def test_jogo_de_outros_na_vila_e_descartado(self):
+        for t in ("São Paulo x Corinthians: clássico será na Vila Belmiro",
+                  "Corinthians se prepara para Majestoso decisivo na Vila Belmiro",
+                  "São Paulo faz último treino antes do Majestoso na Vila Belmiro",
+                  "São Paulo pede à CBF para jogar contra Corinthians na Vila Belmiro"):
+            self.assertEqual(avaliar_foco(t, "Partida na casa do Santos pelo Brasileirão", "https://exemplo.com/x"),
+                             (0, "jogo de outros clubes na Vila Belmiro"), t)
+
+    def test_noticia_do_estadio_continua(self):
+        for t in ("Abel detona gramado da Vila Belmiro e acende alerta para São Paulo x Corinthians",
+                  "Parte da estrutura da Vila Belmiro cede sobre torcida do Bahia",
+                  "Abel avalia clássico equilibrado do Palmeiras e detona gramado da Vila",
+                  "Vila Belmiro faz 110 anos: de Pelé a Neymar, estádio foi pioneiro na TV brasileira",
+                  "Palmeiras busca vitória na Vila Belmiro"):
+            self.assertEqual(self.foco(t), 15, t)
+
+    def test_jogo_do_santos_na_vila_continua(self):
+        self.assertEqual(self.foco("Santos recebe o Palmeiras em clássico na Vila Belmiro"), 25)
 
 
 class Classificacao(unittest.TestCase):
