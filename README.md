@@ -8,20 +8,64 @@ notícia, analisa os dados e gera um dashboard em HTML.
 ```bat
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
-executar.bat --abrir
+.venv\Scripts\python.exe -m santos_rpa robo --abrir
 ```
 
 | Comando | O que faz |
 |---|---|
-| `executar.bat` | Execução completa: coleta, análise e dashboard |
-| `executar.bat --abrir` | Igual, e abre o dashboard no navegador |
-| `executar.bat --sem-coleta` | Só refaz a análise e o dashboard, sem acessar a internet |
-| `.venv\Scripts\python.exe -m unittest discover -s tests` | Roda os testes |
+| `python -m santos_rpa robo` | Execução completa: coleta, análise e dashboard |
+| `python -m santos_rpa robo --abrir` | Igual, e abre o dashboard no navegador |
+| `python -m santos_rpa robo --sem-coleta` | Só refaz a análise e o dashboard, sem acessar a internet |
+| `python -m santos_rpa painel` | Serve o dashboard em <http://localhost:8765> |
+| `python -m unittest discover -s tests -t .` | Roda os testes |
+
+Use o Python do ambiente (`.venv\Scripts\python.exe`) e rode os comandos na raiz do projeto.
+
+## Arquitetura
+
+O projeto segue as camadas do Domain-Driven Design. As dependências só apontam para dentro, em direção ao domínio, e
+`tests/test_arquitetura.py` falha se alguma camada quebrar essa regra.
+
+```text
+santos_rpa/
+├── dominio/             Regras do negócio, sem banco, internet ou arquivos
+│   ├── modelo.py        Entidade Noticia e objetos de valor (Foco, Tema, Sentimento)
+│   ├── portas.py        Contratos que o mundo externo precisa cumprir
+│   ├── foco.py          A notícia é sobre o clube?
+│   ├── tema.py          De que assunto ela trata?
+│   ├── sentimento.py    Ela é boa ou ruim para o clube?
+│   ├── historias.py     Quais notícias falam do mesmo fato?
+│   ├── relevancia.py    Pontos de repercussão e recência
+│   ├── nomes.py         Pessoas citadas no título
+│   ├── clubes.py        Clubes adversários
+│   ├── analise.py       Índice de sentimento e conclusões
+│   └── texto.py         Normalização e identidade da notícia
+├── aplicacao/           Casos de uso, que coordenam o domínio
+│   ├── executar_robo.py
+│   ├── coletar_noticias.py
+│   ├── reclassificar_base.py
+│   ├── avaliar_sentimento.py
+│   └── montar_painel.py
+├── infraestrutura/      Implementação das portas
+│   ├── coleta/          Fontes RSS, HTML e Google News, com o catálogo de sites
+│   ├── persistencia/    Repositório SQLite e leitura dos títulos rotulados
+│   ├── ia/              Modelo de IA local e cache das previsões
+│   └── painel/          Modelo HTML e geração do dashboard
+├── interfaces/          Entradas do sistema
+│   ├── cli.py           Linha de comando; é onde as camadas se conectam
+│   └── servidor_web.py  Dashboard em localhost
+└── configuracao.py      Caminhos e porta
+avaliacao/               Títulos rotulados à mão para medir o sentimento
+scripts/                 Agendamento e execução pelo Windows
+tests/                   Testes, separados pelas mesmas camadas
+dados/                   Banco, dashboard e modelo de IA (fora do Git)
+logs/                    Histórico das execuções (fora do Git)
+```
 
 ## O que é gerado
 
-- `santos_noticias.db`: banco SQLite
-- `dashboard.html`: dashboard em um único arquivo, que funciona sem internet
+- `dados/santos_noticias.db`: banco SQLite
+- `dados/dashboard.html`: dashboard em um único arquivo, que funciona sem internet
 - `logs/rpa.log`: histórico das execuções
 
 ## Fontes
@@ -32,7 +76,7 @@ executar.bat --abrir
 | Páginas HTML | ge, Lance, UOL, Terra, CNN Brasil |
 | Agregador | Google News, com 6 buscas que trazem dezenas de outros veículos |
 
-Para adicionar uma fonte, edite `FONTES_RSS` ou `FONTES_HTML` em `coletores.py`. O robô se identifica no
+Para adicionar uma fonte, edite `FONTES_RSS` ou `FONTES_HTML` em `santos_rpa/infraestrutura/coleta/catalogo.py`. O robô se identifica no
 User-Agent, respeita o `robots.txt`, espera 1 segundo entre acessos ao mesmo domínio e guarda apenas título,
 resumo e link. Se uma fonte falhar, as demais continuam, e o problema aparece em "Saúde das fontes".
 
@@ -54,14 +98,14 @@ resumo e link. Se uma fonte falhar, as demais continuam, e o problema aparece em
 | Repercussão | até 25 | Veículos diferentes na mesma história: 2 = 8,3; 4 = 16,7; 8 ou mais = 25. "Onde assistir" não pontua |
 | Recência | até 20 | Cai pela metade a cada 3 dias |
 
-Os pesos ficam em `relevancia.py`. A base inteira é reclassificada a cada execução, então uma mudança de regra
+Os pesos ficam em `santos_rpa/dominio/` (`foco.py`, `tema.py` e `relevancia.py`). A base inteira é reclassificada a cada execução, então uma mudança de regra
 vale também para as notícias antigas.
 
 ## Somente esporte
 
 Notícias sobre moda, vida pessoal, ações sociais e casos de polícia são rejeitadas, com o motivo "fora de esporte"
 na tabela `descartes`. Diretoria, finanças e estádio continuam, porque afetam o time e o jogo. Para mudar esse
-critério, edite `FORA_DE_ESPORTE` em `relevancia.py`.
+critério, edite `FORA_DE_ESPORTE` em `santos_rpa/dominio/foco.py`.
 
 Partidas de outros clubes na Vila Belmiro, como São Paulo x Corinthians, também são rejeitadas, com o motivo "jogo de outros
 clubes na Vila Belmiro". A regra vale para títulos que citam o estádio sem citar o Santos e trazem dois clubes, ou um clube e
@@ -79,7 +123,7 @@ serviço. O dashboard mostra o índice por dia, por tema, por pessoa, por veícu
 ### Quanto dá para confiar
 
 Medição em 219 títulos sorteados e rotulados à mão, sem ver a previsão e sem ajustar regras depois
-(`tests/sentimento_teste.csv` e `tests/sentimento_validacao.csv`, sempre do ponto de vista do clube):
+(`avaliacao/sentimento_teste.csv` e `avaliacao/sentimento_validacao.csv`, sempre do ponto de vista do clube):
 
 | Medida | Resultado |
 |---|---|
@@ -89,17 +133,17 @@ Medição em 219 títulos sorteados e rotulados à mão, sem ver a previsão e s
 
 Os resultados variam entre as amostras, os rótulos foram feitos por uma única avaliação, e há só 28 positivos. Use o índice
 para comparar períodos e temas, não como valor absoluto. Os títulos usados para criar as regras estão em
-`tests/sentimento_desenvolvimento.csv`; se alguma regra ou o modelo mudar, os dois arquivos de avaliação deixam de ser
+`avaliacao/sentimento_desenvolvimento.csv`; se alguma regra ou o modelo mudar, os dois arquivos de avaliação deixam de ser
 uma medição às cegas.
 
 ### Modelo de IA
 
 As regras decidem primeiro. Quando dão neutro, o modelo `cardiffnlp/twitter-xlm-roberta-base-sentiment`
-(`sentimento_ia.py`, versão fixa) opina se tiver confiança de 70% ou mais. Só com as regras, o acerto era de 74% e
+(`santos_rpa/infraestrutura/ia/modelo_local.py`, versão fixa) opina se tiver confiança de 70% ou mais. Só com as regras, o acerto era de 74% e
 apenas 36% dos positivos eram encontrados.
 
 - **Privacidade:** o modelo roda no computador, e os títulos não são enviados a serviços externos.
-- **Espaço:** ocupa cerca de 3 GB entre a pasta `modelos/` e o ambiente Python. O download acontece uma vez.
+- **Espaço:** ocupa cerca de 3 GB entre a pasta `dados/modelos/` e o ambiente Python. O download acontece uma vez.
 - **Velocidade:** as previsões ficam na tabela `ia_previsoes`, então só títulos novos são analisados.
 - **Falhas:** se o modelo não puder rodar, o robô segue só com as regras, registra o aviso no log e informa isso no dashboard.
 
@@ -115,7 +159,7 @@ sozinho superou as regras de forma consistente, porque eles não leem a notícia
 - **O histórico inicial é parcial.** A primeira execução só alcança o que os sites ainda listam e até 100 itens
   por busca no Google News. Comparações entre semanas ficam confiáveis após 14 dias de coleta.
 - **A coleta HTML depende do layout dos sites.** Se um site mudar, a fonte aparece como "vazio" em "Saúde das fontes".
-- **Listas a manter:** `PESSOAS_DO_CLUBE` e `NAO_NOMES` em `relevancia.py` precisam de ajuste quando o elenco mudar.
+- **Listas a manter:** `PESSOAS_DO_CLUBE` em `dominio/foco.py` e `NAO_NOMES` em `dominio/nomes.py` precisam de ajuste quando o elenco mudar.
 - **O agregador pesa no total.** Veículos do Google News entram com links de redirecionamento, e sites de torcida,
   como o Santistas.net, contam como veículos.
 
@@ -124,7 +168,7 @@ sozinho superou as regras de forma consistente, porque eles não leem a notícia
 Para registrar as tarefas no Agendador do Windows, sem precisar de administrador:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File agendar.ps1
+powershell -ExecutionPolicy Bypass -File scripts\agendar.ps1
 ```
 
 | Tarefa | O que faz |
@@ -132,7 +176,7 @@ powershell -ExecutionPolicy Bypass -File agendar.ps1
 | `Santos RPA` | Roda o robô de hora em hora, sem abrir janela. Se o computador estava desligado ou dormindo, roda quando ele voltar |
 | `Santos Dashboard` | Mantém o dashboard em <http://localhost:8765> a partir do login |
 
-O servidor (`servidor.py`) só aceita conexões deste computador e entrega apenas o `dashboard.html`. Recarregue a página para
+O servidor só aceita conexões deste computador e entrega apenas o `dashboard.html`. Recarregue a página para
 ver a última execução. As duas tarefas só rodam com o usuário logado. Para removê-las:
 
 ```powershell
@@ -142,5 +186,5 @@ Unregister-ScheduledTask -TaskName 'Santos RPA', 'Santos Dashboard' -Confirm:$fa
 ## O que não vai para o GitHub
 
 O `.gitignore` deixa de fora o ambiente Python, o modelo de IA, os logs, o banco e o dashboard gerado. Quem clonar o projeto
-recria tudo com os comandos de "Como executar". Os títulos rotulados em `tests/*.csv` são de terceiros e vão junto, porque os
-testes dependem deles: considere isso antes de tornar o repositório público.
+recria tudo com os comandos de "Como executar". Os títulos rotulados em `avaliacao/*.csv` são de veículos de terceiros e vão
+junto, porque os testes dependem deles.
