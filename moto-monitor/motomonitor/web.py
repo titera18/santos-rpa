@@ -4,7 +4,7 @@ from flask import Flask, jsonify, redirect, render_template, request, url_for
 from .modelos import catalogo
 from .textos import moeda
 
-ESTILOS = {"custom": "Custom", "classica": "Clássica", "estradeira": "Estradeira"}
+ESTILOS = {"custom": "Custom", "classica": "Clássica", "estradeira": "Estradeira clássica"}
 FONTES = {"olx": "OLX", "mercadolivre": "Mercado Livre"}
 
 

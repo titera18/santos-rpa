@@ -32,16 +32,27 @@ def test_conversoes():
     ("Harley Davidson Sportster XL 883 Iron", "sportster883"),
     ("Kawasaki Vulcan 900 Classic", "vulcan900"),
     ("Royal Enfield Classic 350", "classic350"),
-    ("Kawasaki Versys 650 ABS", "versys650"),
+    ("Yamaha Drag Star 1100 Classic", "dragstar1100"),
+    ("Yamaha XVS 1100", "dragstar1100"),
+    ("Honda Shadow 1100 ACE", "shadow1100"),
+    ("Suzuki Boulevard M1500", "boulevardm1500"),
+    ("Suzuki Boulevard C1500 T", "boulevardc1500"),
+    ("Suzuki Intruder 1500 LC", "boulevardc1500"),
+    ("Kawasaki Vulcan 1500 Classic", "vulcan1500"),
+    ("Honda VTX 1300", "vtx1300"),
     ("Dafra Horizon 250", "horizon250"),
 ])
 def test_identifica_modelos(titulo, chave):
     assert identificar(titulo, CATALOGO).chave == chave
 
 
-@pytest.mark.parametrize("titulo", ["Honda CG 160 Titan", "Yamaha Fazer 250", "Honda Biz 125", "Versys X 300"])
+@pytest.mark.parametrize("titulo", ["Honda CG 160 Titan", "Yamaha Fazer 250", "Honda Biz 125", "Kawasaki Versys 650", "Honda NC 750X", "Suzuki V-Strom 650"])
 def test_ignora_motos_fora_do_estilo(titulo):
     assert identificar(titulo, CATALOGO) is None
+
+
+def test_shadow_e_estradeira():
+    assert identificar("Honda Shadow 750", CATALOGO).estilo == "estradeira"
 
 
 def test_filtra_estilos_do_config():

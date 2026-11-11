@@ -1,6 +1,6 @@
 # 🏍️ Moto Monitor — Curitiba e região
 
-Site local que vigia anúncios de motos **custom, clássicas e estradeiras** na OLX e no
+Site local que vigia anúncios de motos **custom, estradeiras clássicas (tipo Shadow) e clássicas** na OLX e no
 Mercado Livre (Curitiba e região metropolitana), compara com a **Tabela FIPE** e avisa
 quando aparece oportunidade.
 
@@ -46,15 +46,22 @@ Para só coletar sem abrir o site (ex.: Agendador de Tarefas): `iniciar.bat --um
 
 ## Modelos monitorados
 
-Honda Shadow 600/750, Rebel 500 · Yamaha Virago 250/535, Drag Star 650, Midnight Star 950 ·
-Suzuki Intruder 125/250, Boulevard M800/C800/M1500, Marauder 800 · Kawasaki Vulcan
-500/800/900/S 650, Eliminator · Harley-Davidson Sportster 883/1200 · Dafra Horizon 150/250 ·
-Kasinski Mirage 150/250/650 · Haojue Master Ride · Royal Enfield Classic 350, Meteor 350,
-Bullet, Hunter 350, Interceptor 650, Continental GT · Triumph Bonneville ·
-**Estradeiras**: Kawasaki Versys 650, Honda NC 700X/750X, Honda CB 500X, Suzuki V-Strom 650.
+**Estradeiras clássicas (custom grandes, tipo Shadow)**: Honda Shadow 600/750/1100, VTX 1300 ·
+Yamaha Drag Star 650/1100, Midnight Star 950, Royal Star · Suzuki Boulevard M800/C800/M1500/C1500,
+Marauder 800 · Kawasaki Vulcan 800/900/1500/1600 · Harley-Davidson Sportster 883/1200 ·
+Kasinski Mirage 650.
+
+**Custom menores**: Honda Rebel 500 · Yamaha Virago 250/535 · Suzuki Intruder 125/250 ·
+Kawasaki Vulcan 500/S 650, Eliminator · Dafra Horizon 150/250 · Kasinski Mirage 150/250 ·
+Haojue Master Ride · Royal Enfield Meteor 350.
+
+**Clássicas**: Royal Enfield Classic 350, Bullet, Hunter 350, Interceptor 650,
+Continental GT · Triumph Bonneville.
+
+Motos de aventura/crossover (Versys, NC 750X, V-Strom etc.) não entram.
 
 No `config.json`:
-- `estilos_ativos`: tire `"estradeira"` se quiser só custom/clássicas;
+- `estilos_ativos`: por exemplo `["estradeira"]` para ver só as custom grandes tipo Shadow;
 - `modelos_desativados`: lista de chaves (ex.: `["rebel500", "bonneville"]`);
 - `modelos_extras`: acrescente modelos sem mexer no código, por exemplo
   ```json
