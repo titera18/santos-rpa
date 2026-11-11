@@ -38,7 +38,9 @@ class Coletor:
         modelo = identificar(bruto.titulo, self.modelos)
         if not modelo or not bruto.preco:
             return False, False
-        if bruto.preco > r["preco_maximo_coleta"] or not self.cidade_ok(bruto.cidade):
+        if not r.get("preco_minimo_plausivel", 0) <= bruto.preco <= r["preco_maximo_coleta"]:
+            return False, False
+        if not self.cidade_ok(bruto.cidade):
             return False, False
         fipe, ref = self.fipe.consultar(modelo, bruto.ano)
         motivos = regras.avaliar(bruto.preco, fipe, r)
