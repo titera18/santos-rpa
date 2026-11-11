@@ -1,0 +1,49 @@
+{
+  "intervalo_minutos": 30,
+  "porta": 8765,
+  "banco": "dados/motos.db",
+
+  "cidades": [
+    "Curitiba", "São José dos Pinhais", "Colombo", "Pinhais", "Araucária",
+    "Campo Largo", "Almirante Tamandaré", "Fazenda Rio Grande", "Piraquara",
+    "Campina Grande do Sul", "Quatro Barras", "Campo Magro", "Rio Branco do Sul",
+    "Mandirituba", "Contenda", "Balsa Nova", "Itaperuçu", "Bocaiúva do Sul",
+    "Lapa", "Rio Negro", "Ponta Grossa", "Paranaguá"
+  ],
+
+  "estilos_ativos": ["custom", "classica", "estradeira"],
+  "modelos_desativados": [],
+
+  "regras": {
+    "preco_alvo": 18000,
+    "desconto_fipe": 0.10,
+    "teto_fipe": 30000,
+    "preco_minimo_plausivel": 4000,
+    "preco_maximo_coleta": 35000
+  },
+
+  "fontes": {
+    "olx": {
+      "ativa": true,
+      "url_busca": "https://www.olx.com.br/autos-e-pecas/motos/estado-pr/regiao-de-curitiba-e-paranagua",
+      "paginas": 2
+    },
+    "mercadolivre": {
+      "ativa": true,
+      "url_busca": "https://lista.mercadolivre.com.br/veiculos/motos/parana/{termo}",
+      "paginas": 1
+    }
+  },
+
+  "fipe": {
+    "url_base": "https://parallelum.com.br/fipe/api/v1/motos",
+    "token": ""
+  },
+
+  "notificacoes": {
+    "desktop": true,
+    "telegram": { "ativo": false, "token": "", "chat_id": "" }
+  },
+
+  "pausa_entre_requisicoes": [2, 5]
+}

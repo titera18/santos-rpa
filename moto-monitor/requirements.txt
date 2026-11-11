@@ -1,0 +1,5 @@
+requests>=2.31
+beautifulsoup4>=4.12
+flask>=3.0
+# opcional: notificação nativa do Windows/Linux/macOS
+plyer>=2.1
