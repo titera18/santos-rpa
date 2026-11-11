@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moto Monitor · Curitiba</title>
+<style>
+  :root {
+    --bg: #f5f3ef; --card: #fff; --texto: #1f1d1a; --sutil: #6d675e; --borda: #e2ddd4;
+    --destaque: #b4532a; --ok: #2f7d4a; --chip: #efe9df;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #171614; --card: #22201d; --texto: #ece7df; --sutil: #a39b8f; --borda: #36322d;
+            --destaque: #e07a4a; --ok: #5fbf80; --chip: #2d2a26; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--texto); }
+  header { padding: 20px 16px 8px; max-width: 1200px; margin: auto; display: flex; flex-wrap: wrap; gap: 12px; align-items: end; justify-content: space-between; }
+  h1 { margin: 0; font-size: 22px; }
+  .sub { color: var(--sutil); font-size: 13px; }
+  main { max-width: 1200px; margin: auto; padding: 0 16px 40px; }
+  .barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+  .abas a { padding: 8px 14px; border-radius: 999px; text-decoration: none; color: var(--texto); background: var(--chip); font-weight: 600; }
+  .abas a.ativa { background: var(--destaque); color: #fff; }
+  .badge { background: #d33; color: #fff; border-radius: 999px; padding: 0 7px; font-size: 12px; margin-left: 4px; }
+  button, select, input { font: inherit; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--borda); background: var(--card); color: var(--texto); }
+  button.prim { background: var(--destaque); color: #fff; border: 0; font-weight: 600; cursor: pointer; }
+  .regras { background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 10px 14px; font-size: 13px; color: var(--sutil); }
+  .grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+  .card.alerta { border: 2px solid var(--destaque); }
+  .foto { aspect-ratio: 4/3; background: var(--chip) center/cover no-repeat; display: block; }
+  .corpo { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .modelo { font-weight: 700; }
+  .titulo { color: var(--sutil); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preco { font-size: 20px; font-weight: 800; }
+  .fipe { font-size: 13px; color: var(--sutil); }
+  .desc-pos { color: var(--ok); font-weight: 700; }
+  .desc-neg { color: var(--sutil); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+  .chip { background: var(--chip); border-radius: 6px; padding: 1px 7px; font-size: 12px; }
+  .chip.motivo { background: var(--destaque); color: #fff; }
+  .rodape { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 8px; gap: 8px; }
+  .rodape a { color: var(--destaque); font-weight: 600; text-decoration: none; }
+  .rodape form button { padding: 3px 8px; font-size: 12px; cursor: pointer; }
+  .vazio { padding: 40px; text-align: center; color: var(--sutil); background: var(--card); border-radius: 14px; border: 1px dashed var(--borda); }
+  details { margin-top: 18px; color: var(--sutil); font-size: 13px; }
+  .erros { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🏍️ Moto Monitor — Curitiba e região</h1>
+    <div class="sub">
+      Custom, clássicas e estradeiras · OLX + Mercado Livre · atualiza a cada {{ intervalo }} min ·
+      <span id="status">
+      {% if status.rodando %}coletando… {{ status.progresso }}
+      {% elif coleta %}última coleta {{ coleta.fim[11:16] }} de {{ coleta.fim[8:10] }}/{{ coleta.fim[5:7] }} ({{ coleta.vistos }} vistos, {{ coleta.novos }} novos)
+      {% else %}ainda sem coleta{% endif %}
+      </span>
+    </div>
+  </div>
+  <div class="barra">
+    <button id="btnNotif" type="button">🔔 Ativar avisos</button>
+    <form method="post" action="/coletar"><button class="prim">↻ Buscar agora</button></form>
+  </div>
+</header>
+<main>
+  <div class="regras">
+    <b>Alerta</b> quando: preço ≤ {{ regras.preco_alvo|moeda }} <b>ou</b> preço ≤ {{ regras.teto_fipe|moeda }} e
+    pelo menos {{ (regras.desconto_fipe*100)|round|int }}% abaixo da FIPE.
+    Ignora anúncios abaixo de {{ regras.preco_minimo_plausivel|moeda }} (geralmente entrada/parcela ou golpe).
+  </div>
+
+  <div class="barra abas">
+    <a href="/?aba=alertas" class="{{ 'ativa' if aba == 'alertas' }}">Alertas{% if stats.nao_lidos %}<span class="badge">{{ stats.nao_lidos }}</span>{% endif %}</a>
+    <a href="/?aba=todos" class="{{ 'ativa' if aba == 'todos' }}">Todos os anúncios ({{ stats.total }})</a>
+  </div>
+
+  {% if aba == 'todos' %}
+  <form class="barra" method="get">
+    <input type="hidden" name="aba" value="todos">
+    <select name="estilo"><option value="">Todos os estilos</option>
+      {% for k, v in ESTILOS.items() %}<option value="{{ k }}" {{ 'selected' if filtros.estilo == k }}>{{ v }}</option>{% endfor %}
+    </select>
+    <select name="fonte"><option value="">Todas as fontes</option>
+      {% for k, v in FONTES.items() %}<option value="{{ k }}" {{ 'selected' if filtros.fonte == k }}>{{ v }}</option>{% endfor %}
+    </select>
+    <input name="preco_max" type="number" step="1000" placeholder="Preço máx." value="{{ filtros.preco_max or '' }}" style="width:130px">
+    <select name="dias">
+      <option value="">Qualquer data</option>
+      {% for d in [1, 3, 7, 30] %}<option value="{{ d }}" {{ 'selected' if filtros.dias == d|string }}>Vistos nos últimos {{ d }} dia(s)</option>{% endfor %}
+    </select>
+    <select name="ordem">
+      <option value="desconto" {{ 'selected' if filtros.ordem == 'desconto' }}>Maior desconto FIPE</option>
+      <option value="preco" {{ 'selected' if filtros.ordem == 'preco' }}>Menor preço</option>
+      <option value="recentes" {{ 'selected' if filtros.ordem == 'recentes' }}>Mais recentes</option>
+    </select>
+    <button>Filtrar</button>
+  </form>
+  {% endif %}
+
+  {% if itens %}
+  <div class="grade">
+    {% for a in itens %}
+    <article class="card {{ 'alerta' if a.alerta }}">
+      <a class="foto" href="{{ a.url }}" target="_blank" rel="noopener" style="{% if a.imagem %}background-image:url('{{ a.imagem }}'){% endif %}"></a>
+      <div class="corpo">
+        <div class="modelo">{{ a.modelo_nome }} {{ a.ano or '' }}</div>
+        <div class="titulo" title="{{ a.titulo }}">{{ a.titulo }}</div>
+        <div class="preco">{{ (a.preco_alerta if aba == 'alertas' else a.preco)|moeda }}</div>
+        <div class="fipe">
+          FIPE: {{ a.fipe|moeda if a.fipe else 'não encontrada' }}
+          {% if a.desconto is not none %}
+            · <span class="{{ 'desc-pos' if a.desconto > 0 else 'desc-neg' }}">{{ '%+.0f'|format(-a.desconto*100) }}%</span>
+          {% endif %}
+        </div>
+        <div class="chips">
+          <span class="chip">{{ ESTILOS.get(a.estilo, a.estilo) }}</span>
+          <span class="chip">{{ a.cidade or '—' }}</span>
+          <span class="chip">{{ a.km|km }}</span>
+          <span class="chip">{{ FONTES.get(a.fonte, a.fonte) }}</span>
+          {% for m in (a.motivos_alerta if aba == 'alertas' else a.motivos) %}<span class="chip motivo">{{ m }}</span>{% endfor %}
+        </div>
+        {% if aba == 'alertas' %}<div class="sub">alerta em {{ a.quando[8:10] }}/{{ a.quando[5:7] }} {{ a.quando[11:16] }}{% if a.preco != a.preco_alerta %} · preço atual {{ a.preco|moeda }}{% endif %}</div>{% endif %}
+        <div class="rodape">
+          <a href="{{ a.url }}" target="_blank" rel="noopener">Ver anúncio →</a>
+          <form method="post" action="/ocultar/{{ a.id }}"><button title="Não mostrar mais">Ocultar</button></form>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="vazio">
+    {% if aba == 'alertas' %}Nenhum alerta ainda. Assim que aparecer uma moto dentro das regras, ela surge aqui.{% else %}Nenhum anúncio coletado com esses filtros.{% endif %}
+  </div>
+  {% endif %}
+
+  <details>
+    <summary>Modelos monitorados ({{ modelos|length }})</summary>
+    <p>{% for m in modelos %}{{ m.nome }} <i>({{ ESTILOS.get(m.estilo) }})</i>{{ ', ' if not loop.last }}{% endfor %}</p>
+  </details>
+  {% if coleta and coleta.erros %}
+  <details>
+    <summary>Avisos da última coleta ({{ coleta.erros|length }})</summary>
+    <div class="erros">{{ coleta.erros|join('\n') }}</div>
+  </details>
+  {% endif %}
+</main>
+<script>
+  let ultimo = {{ ultimo_alerta }};
+  const btn = document.getElementById('btnNotif');
+  function atualizarBotao() {
+    if (!('Notification' in window)) { btn.style.display = 'none'; return; }
+    btn.textContent = Notification.permission === 'granted' ? '🔔 Avisos ativos' : '🔔 Ativar avisos';
+  }
+  btn.onclick = () => Notification.requestPermission().then(atualizarBotao);
+  atualizarBotao();
+
+  function bip() {
+    try {
+      const ctx = new AudioContext(), o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination); o.frequency.value = 880; g.gain.value = 0.15;
+      o.start(); o.stop(ctx.currentTime + 0.35);
+    } catch (e) {}
+  }
+
+  async function verificar() {
+    try {
+      const novos = await (await fetch('/api/alertas?desde=' + ultimo)).json();
+      if (novos.length) {
+        ultimo = Math.max(...novos.map(a => a.alerta_id));
+        bip();
+        for (const a of novos.slice(0, 5)) {
+          if (window.Notification && Notification.permission === 'granted') {
+            const n = new Notification('🏍️ ' + a.modelo_nome + ' ' + (a.ano || ''), {
+              body: 'R$ ' + a.preco_alerta.toLocaleString('pt-BR') + ' · ' + (a.cidade || '') + '\n' + a.motivos_alerta.join(' / ')
+            });
+            n.onclick = () => window.open(a.url, '_blank');
+          }
+        }
+        document.title = '(' + novos.length + ') Moto Monitor';
+      }
+      const s = await (await fetch('/api/status')).json();
+      const el = document.getElementById('status');
+      if (s.status.rodando) el.textContent = 'coletando… ' + s.status.progresso;
+    } catch (e) {}
+  }
+  setInterval(verificar, 60000);
+  setTimeout(verificar, 5000);
+</script>
+</body>
+</html>
